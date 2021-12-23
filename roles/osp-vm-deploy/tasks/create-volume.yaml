@@ -1,0 +1,8 @@
+---
+- name: Create volume
+  os_volume:
+    state: present
+    cloud: "{{ osp_cloud }}"
+    size: "{{ volume_size }}"
+    display_name: "{{ volume_name }}"
+  when: 

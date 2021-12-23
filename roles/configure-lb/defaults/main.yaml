@@ -1,0 +1,41 @@
+defaults:
+####################
+# Haproxy Defaults #
+####################
+  haproxy:
+# Centos and RHEL systems will have different Haproxy installs, as such paths will vary.
+# These defaults help to define the defaults values as part of the template process.
+    centos:
+      chroot: ""
+      pidfile: ""
+      socket: ""
+      config_file: ""
+    redhat:
+      chroot: ""
+      pidfile: ""
+      socket: ""
+      config_file: ""
+# Following defaults pertain to the Haproxy config itself. These can be overwritten
+# as part of the host/user supplied variables
+    ssl:
+      ciphers: ""
+    stats:
+      auth:
+        user: "admin"
+        pass: "letmein"
+    frontend:
+      mode: "http"
+    backend:
+      balance: "roundrobin"
+
+# Pacemaker configuration will be consistent across CentOS/RHEL. Following defaults
+# are intended to be overwritten (except user) for security/stonith reasons.
+  pacemaker:
+    auth:
+      user: "hacluster"
+      pass: "letmein"
+    name: "redhat-cluster"
+    # Disable fencing to accommodate Virtual/Physical deployments
+    fencing:
+      enabled: false
+      agent_type: ""

@@ -1,0 +1,92 @@
+#--------------------------------------------------------------
+# Global Settings
+#--------------------------------------------------------------
+global
+    log		127.0.0.1 local2
+    
+    chroot	{{ defaults.haproxy[host.dist].chroot }}
+    pidfile	{{ defaults.haproxy[host.dist].pidfile }}
+    maxconn	4000
+    user	haproxy
+    group	haproxy
+    daemon
+
+    # Turn on stats unix socket
+    stats socket {{ defaults.haproxy[host.dist].socket }}
+
+    ssl-default-bind-ciphers {{ host.ssl.ciphers | default(defaults.haproxy.ssl.ciphers) }}
+    ssl-default-server-ciphers {{ host.ssl.ciphers | default(defaults.haproxy.ssl.ciphers) }}
+
+{% if host.smt is defined %}
+    # Utilise Multi-Threading
+    nbproc 1
+    nbthread {{ host.cores - 2 }}
+    cpu-map auto:1/1-{{ host.cores - 2 }} 0-{{ host.cores - 3 }}
+{% endif %}
+
+#--------------------------------------------------------------
+# Common Defaults
+#--------------------------------------------------------------
+defaults
+    mode			http
+    log				global
+    option			httplog
+    option			dontlognull
+    option			http-keep-alive
+    option			redispatch
+    option forwardfor		except 127.0.0.0/8
+    retries			3
+    timeout http-request	10s
+    timeout queue		2m
+    timeout connect		10s
+    timeout client		2m
+    timeout server		2m
+    timeout http-keep-alive	10s
+    timeout check		10s
+    maxconn			3000
+
+{% if host.stats is defined %}
+listen stats
+    bind *:8443
+    mode http
+    stats enable
+    stats refresh 5s
+    stats hide-version
+    stats realm Haproxy\ Statistics
+    stats uri /lb_status
+    stats auth {{ host.stats.auth.user | default(defaults.haproxy.stats.auth.user) }}:{{ host.stats.auth.pass | default(defaults.haproxy.stats.auth.pass) }}
+{% endif %}
+
+#--------------------------------------------------------------
+# Frontend Settings
+#--------------------------------------------------------------
+{% for frontend in frontends %}
+frontend {{ frontend.name }}
+{% if frontend.ssl is defined %}
+    bind {{ frontend.listen.ip }}:{{ frontend.listen.port }} ssl crt {{ frontend.ssl.cert }} ssl-min-ver {{ frontend.ssl.version | default(defaults.haproxy.ssl.version) }}
+{% else %}
+    bind {{ frontend.listen.ip }}:{{ frontend.listen.port }}
+{% endif %}
+    mode {{ frontend.mode | default(defaults.haproxy.frontend.mode) }}
+    default_backend {{ frontend.backend }}
+
+{% endfor %}
+
+#--------------------------------------------------------------
+# Backend Settings
+#--------------------------------------------------------------
+{% for backend in backends %}
+backend {{ backend.name }}
+    balance {{ backend.balance | default(defaults.haproxy.backend.balance) }}
+{% if backend.health_check is defined %}
+    option httpchk GET {{ backend.health_check }}
+{% endif %}
+{% for server in backend.servers %}
+{% if server.ssl is defined %}
+    server {{ server.name }} {{ server.ip }}:{{ server.port }} check ssl ca-file {{ server.ssl.ca }}
+{% else %}
+    server {{ server.name }} {{ server.ip }}:{{ server.port }} check
+{% endif %}
+{% endfor %}
+
+{% endfor %}

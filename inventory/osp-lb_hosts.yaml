@@ -1,0 +1,77 @@
+loadbalancer:
+  hosts:
+    lb_test_01:
+      ansible_host: 10.10.24.5
+      canonical_hostname: lb_test_01.cp
+    lb_test_02:
+      ansible_host: 10.10.24.6
+      canonical_hostname: lb_test_02.cp
+  vars:
+    ansible_ssh_user: ansible
+    clouds:
+      geode:
+        cacert: /etc/ssl/certs/osp-ca.pem
+        auth:
+          auth_url: https://osp-dev.geode-host.cp:13000/v3
+          project_name: geode
+          username: geodeuser
+          password: geodehost
+          user_domain_name: Default
+          project_domain_name: Default
+    pacemaker:
+      auth:
+        user: hacluster
+        pass: redhat123
+      name: redhat-cluster
+    host:
+      dist: centos
+      cores: 4
+      stats:
+        auth:
+          user: testuser
+          pass: testpass
+      smt: true
+    configs:
+      haproxy: /etc/haproxy/haproxy.cfg
+      logrotate: /etc/logrotate.d/haproxy
+      syslog: 
+#      haproxy: /etc/opt/rh/rh-haproxy/haproxy.cfg
+    frontends:
+      - name: s3_frontend
+        listen:
+          ip: 10.10.24.7
+          port: 80
+        mode: http
+        backend: s3_backend
+      - name: galera_backend
+        listen:
+          ip: 10.10.24.7
+          port: 3306
+        mode: tcp
+        backend: galera_backend
+        backends:
+      - name: s3_backend
+        balance: leastconn
+        health_check: "/test"
+        servers:
+          - name: s3_test_01.cp
+            ip: 10.10.24.11
+            port: 80
+          - name: s3_test_02.cp
+            ip: 10.10.24.12
+            port: 80
+          - name: s3_test_03.cp
+            ip: 10.10.24.13
+            port: 80
+      - name: galera_backend
+        balance: roundrobin
+        servers:
+          - name: galera-01.cp
+            ip: 10.10.24.50
+            port: 3306
+          - name: galera-02.cp
+            ip: 10.10.24.51
+            port: 3306
+          - name: galera-03.cp
+            ip: 10.10.24.52
+            port: 3306

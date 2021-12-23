@@ -1,0 +1,26 @@
+---
+- name: Cluster Authentication
+  shell:
+    cmd: "pcs cluster auth {{ hostnames }} -u hacluster -p {{ pacemaker.auth.pass | default(defaults.pacemaker.auth.pass)}}"
+  register: auth_results
+  run_once: True
+
+- name: Create Cluster
+  shell:
+    cmd: "pcs cluster setup --start --name {{ pacemaker.name | default(defaults.pacemaker.name) }} {{ hostnames }}"
+  run_once: True
+
+- name: Enable Cluster on Boot
+  shell:
+    cmd: "pcs cluster enable --all"
+  run_once: True
+
+- name: Configure Stonith Devices
+  run_once: True
+  when: "pacemaker.fencing.enabled is defined" and "pacemaker.fencing.enabled is true"
+
+- name: Disable Stonith Devices
+  shell:
+    cmd: "pcs property set stonith-enabled=false"
+  run_once: True
+  when: "pacemaker.fencing.enabled is not defined" or "pacemaker.fencing.enabled is false"

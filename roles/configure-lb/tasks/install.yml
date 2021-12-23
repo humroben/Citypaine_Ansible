@@ -1,0 +1,102 @@
+---
+#######################################
+# Repository configuration for RHEL 7 #
+#######################################
+
+#- name: Register with Satellite
+#  redhat_subscription: 
+#    state: present
+#    server_hostname: ""
+#    activationkey: "RHEL7HA_AK"
+#    environment: ""
+#  when: host.dist is "redhat"
+
+#- name: Enable all repos
+#  rhsm_repository:
+#    state: enabled
+#    name: '*'
+#  when: host.dist is "redhat"
+
+#########################################
+# Repository configuration for CentOS 7 #
+#########################################
+
+- name: Install epel repo
+  yum:
+    name: epel-release
+    state: latest
+  when: host.dist is "centos"
+
+- name: Enable epel repo
+  ini_file:
+    dest: /etc/yum.repos.d/epel.repo
+    section: epel
+    option: enabled
+    value: 1
+  when: host.dist is "centos"
+
+############################################
+# Haproxy + Pacemaker package installation #
+############################################
+
+- name: Install Pacemaker packages
+  yum:
+    name:
+      - pacemaker
+      - pcs
+      - fence-agents-all
+    state: present
+
+- name: Install RedHat Haproxy packages
+  yum:
+    name:
+      - rh-haproxy18
+    state: present
+  when: host.dist is "redhat"
+
+- name: Install CentOS Haproxy packages
+  yum:
+    name:
+      - haproxy18
+    state: present
+  when: host.dist is "centos"
+
+####################################
+# Configure SSH keys for root user #
+####################################
+
+- name: Check for presence of SSH public key
+  stat:
+    path: ~/.ssh/lb_root.pub
+  register: ssh_pub
+  delegate_to: localhost
+
+- name: Check for presence of SSH private key
+  stat:
+    path: ~/.ssh/lb_root
+  register: ssh_key
+  delegate_to: localhost
+
+- name: Create .ssh directory
+  file:
+    path: /root/.ssh
+    owner: root
+    group: root
+    mode: 0700
+    state: directory
+
+- name: Upload SSH private key
+  copy:
+    src: ~/.ssh/lb_root
+    dest: /root/.ssh/id_rsa
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Upload SSH public key
+  copy:
+    src: ~/.ssh/lb_root.pub
+    dest: /root/.ssh/authorized_keys
+    owner: root
+    group: root
+    mode: 0600

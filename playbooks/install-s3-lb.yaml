@@ -1,0 +1,8 @@
+---
+- hosts: loadbalancer
+  become: yes
+
+  tasks:
+    - name: Configure Loadbalancer
+      import_role: 
+        name: configure-lb 

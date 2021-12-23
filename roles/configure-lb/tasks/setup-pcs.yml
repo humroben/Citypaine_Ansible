@@ -1,0 +1,22 @@
+---
+- name: Configure software firewall
+  firewalld:
+    service: high-availability
+    permanent: true
+    state: enabled
+
+- name: Configure hacluster user
+  user:
+    name: hacluster
+    password: "{{ pacemaker.auth.pass | default(defaults.pacemaker.auth.pass) }}"
+
+- name: Enable and Start the PCSD service
+  systemd:
+    name: pcsd
+    enabled: yes
+    state: started
+
+- name: Prepare hostname string
+  set_fact:
+    hostnames: "{{ hostnames|default() }} {{ item.value.canonical_hostname }}"
+    loop: "{{ hostvars }}"

@@ -1,0 +1,15 @@
+---
+- name: Install Packages
+  import_tasks: install.yml
+
+- name: Setup Pacemaker
+  import_tasks: setup-pcs.yml
+
+- name: Configure Pacemaker
+  import_tasks: config-pcs.yml
+
+- name: Configure Haproxy
+  import_tasks: haproxy.yml
+
+- name: configure logs
+  import_tasks: logs.yml
